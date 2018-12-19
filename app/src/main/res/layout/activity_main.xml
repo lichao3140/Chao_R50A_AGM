@@ -22,9 +22,9 @@
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_alignParentRight="true"
-            android:layout_marginLeft="730px"
-            android:layout_marginRight="5px"
-            android:layout_marginTop="5px"
+            android:layout_marginLeft="@dimen/x354"
+            android:layout_marginRight="@dimen/x3"
+            android:layout_marginTop="@dimen/x3"
             android:src="@mipmap/reg"/>
     </FrameLayout>
 
