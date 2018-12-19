@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <color name="colorPrimary">#3F51B5</color>
+    <color name="colorPrimaryDark">#303F9F</color>
+    <color name="colorAccent">#FF4081</color>
+
+    <color name="gray">#747272</color>
+    <color name="white">#fff</color>
+    <color name="listViewSelect">#aeabab</color>
+    <color name="socket_true">#0cf104</color>
+    <color name="socket_false">#f90404</color>
+
+    <color name="transparent就是">#00000000</color>
+
+    <color name="translucent_background">#80000000</color>
+
+
+    <color name="color_transparent">#00000000</color>
+
+    <!--color name="white">#ffffff</color-->
+
+    <color name="gray_general_hint">#ababab</color>
+    <color name="gray_general_lable">#666666</color>
+    <color name="gray_general_title">#999999</color>
+    <color name="gray_general_desc">#adadad</color>
+
+    <color name="divider_color">#ededed</color>
+    <color name="dialog_divider_color">#ffdddddd</color>
+
+    <color name="black_general_label">#666666</color>
+    <color name="black_general_title">#333333</color>
+</resources>

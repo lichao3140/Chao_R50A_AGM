@@ -1,0 +1,661 @@
+﻿<!doctype html>
+<html>
+
+<head>
+    <meta charset="utf-8">
+    <meta http-equivhttp-equiv="pragma" content="no-cache">
+    <meta http-equivhttp-equiv="cache-control" content="no-cache">
+    <meta http-equivhttp-equiv="expires" content="0">
+    <meta http-equiv="pragma" content="no-cache">
+    <meta http-equiv="cache-control" content="no-cache">
+    <meta http-equiv="expires" content="0">
+    <title>人脸识别综合应用管理平台</title>
+    <script src="../js/jquery-2.1.1.min.js"></script>
+    <script src="../js/echarts.min.js"></script>
+    <script src="../js/sweet-alert.min.js"></script>
+    <script src="../js/jquery-clock-timepicker.min.js"></script>
+    <script src="../js/jquery-clock-timepicker.js"></script>
+    <style>
+        html{
+            /* overflow: inherit;*/
+            height:100%;
+        }
+        /* 禁止用户复制文本 */
+        body{
+            -moz-user-select: none; /*火狐*/
+            -webkit-user-select: none; /*webkit浏览器*/
+            -ms-user-select: none; /*IE10*/
+            -khtml-user-select: none; /*早期浏览器*/
+            user-select: none;
+            /* overflow: inherit;*/
+        }
+
+        body::-webkit-scrollbar {/*滚动条整体样式*/
+            width: 10px;     /*高宽分别对应横竖滚动条的尺寸*/
+            height: 1px;
+        }
+        body::-webkit-scrollbar-thumb {/*滚动条里面小方块*/
+            border-radius: 10px;
+            -webkit-box-shadow: inset 0 0 5px rgba(0,0,0,0.2);
+            background: #FFFFFF;
+        }
+        body::-webkit-scrollbar-track {/*滚动条里面轨道*/
+            -webkit-box-shadow: inset 0 0 5px rgba(0,0,0,0.2);
+            border-radius: 10px;
+            /* background: #EDEDED; */
+        }
+        #menu table tr td{
+            width:100px;
+            height:50px;
+            text-align: center;
+            border-bottom: 1px solid #cccaca;
+        }
+
+    </style>
+    <script>
+        var delid;
+        var updpid;
+        var updlevel;
+        var updname;
+        var interurl;
+        var typeid;
+
+        //iframe加载数据多需id
+        var ifrmethodid;
+
+        //模板库目录总集
+        var modelmap;
+        //设备目录总计
+        var equmap;
+
+        //用户权限
+        var power=[];
+
+        //用户编号
+        var userid;
+        window.onload=function(){
+            $('.time').clockTimePicker({});
+        }
+        $(function(){
+            document.onkeydown=function(event){
+                var e = event || window.event || arguments.callee.caller.arguments[0];
+                if(e && e.keyCode==13){ // enter 键
+                    //要做的事情
+                    $("#ipOk").click();
+                }
+            };
+
+
+            if (document.cookie.length>0)
+            {
+                var statu=document.cookie.indexOf("VMS_LoginName=");
+
+                if(statu!=-1){
+                    var strcookie = document.cookie;//获取cookie字符串
+                    var arrcookie = strcookie.split("; ");//分割
+                    var cookiesstatu=[];
+                    //遍历匹配
+                    for ( var i = 0; i < arrcookie.length; i++) {
+                        var arr = arrcookie[i].split("=");
+                    }if(arr[0]=="VMS_LoginName" && arr[1]!="-1"){
+                        $("#logintxt").html(" "+arr[1]);
+                        cookiesstatu.push("0");
+                    }else{
+                        cookiesstatu.push("1");
+                    }
+                }
+                if($.inArray("0",cookiesstatu)==-1){
+                    window.location.href = "login.html";
+                    $("#statulamp").attr("src","img/stop.png");
+                }else{
+                    $("#statulamp").attr("src","img/pass.png");
+                }
+            }else{
+                window.location.href = "login.html";
+            };
+
+            $("#updselfrad").on('click',function(){
+                $("#updselfbtn").prop("disabled",false);
+            });
+            $("#upddefaultrad").on('click',function(){
+                $("#updselfbtn").prop("disabled",true);
+            });
+        });
+
+        //提示用户权限不足
+        function powerlack(){
+            swal("警告","用户权限不足！","warning");
+        }
+
+
+        function openurlconfig(){
+            $('#my-prompts').modal({
+                relatedTarget: this,
+                onConfirm: function(e) {
+                    interurl=e.data;
+                    loadCatalog();
+                },
+                onCancel: function(e) {
+                    /*alert('不想说!');*/
+                }
+            });
+        }
+        /* 模拟iframe的onclick事件 */
+        var IframeOnClick = {
+            resolution: 200,
+            iframes: [],
+            interval: null,
+            Iframe: function() {
+                this.element = arguments[0];
+                this.cb = arguments[1];
+                this.hasTracked = false;
+            },
+            track: function(element, cb) {
+                this.iframes.push(new this.Iframe(element, cb));
+                if (!this.interval) {
+                    var _this = this;
+                    this.interval = setInterval(function() { _this.checkClick(); }, this.resolution);
+                }
+            },
+            checkClick: function() {
+                if (document.activeElement) {
+                    var activeElement = document.activeElement;
+                    for (var i in this.iframes) {
+                        if (activeElement === this.iframes[i].element) { // user is in this Iframe
+                            if (this.iframes[i].hasTracked == false) {
+                                this.iframes[i].cb.apply(window, []);
+                                this.iframes[i].hasTracked = true;
+                            }
+                        } else {
+                            this.iframes[i].hasTracked = false;
+                        }
+                    }
+                }
+            }
+        };
+
+        function linkbtn(e){
+            $(e).siblings('.tpl-left-nav-sub-menu').slideToggle(80)
+                .end()
+                .find('.tpl-left-nav-more-ico').toggleClass('tpl-left-nav-more-ico-rotate');
+
+        }
+
+
+        function getParent(pid,rst,arrlen){
+            if(rst==undefined){
+                return;
+            }
+            for(var i=0,len=arrlen;i<len;i++){
+                var rsts=rst[i].id;
+                if(rsts==pid){
+                    return rst[i];
+                }
+            }
+        }
+        function openpage(src,id){
+            if(rightparent.loadstatu==0 || rightparent.loadstatu==undefined){
+                ifrmethodid=id;
+                document.getElementById("rightparent").src=src;
+            }else{
+                swal("警告", "正在进行批量导入操作，请勿进行其他操作！", "warning");
+            }
+
+        };
+
+        //退出登录   清除cookies
+        function signout(){
+            document.cookie = 'VMS_LoginName=-1;expires=-1';
+            interurl="";
+            document.cookie = 'VMS_IP=-1;expires=-1';
+            document.cookie = 'VMS_Power=-1;expires=-1';
+            document.cookie = 'VMS_Pwd=-1;expires=-1';
+            window.location.href = "login.html";
+        }
+
+        //清除修改以及添加面板所输入的内容
+        function clearpanel(){
+            $("#onenum").val("");
+            $("#nnum").val("");
+            $("#rettimeout").val("");
+            $("#ondeltime").val("");
+            $("#ondeltime").prop("checked",false);
+            $("#ondeltime").prop("voice",false);
+        }
+
+        function esc(){
+            $('#devconfig').css('display','none');
+            $("#maskpanel").css("display","none");
+        }
+
+        //打开设备参数配置面板
+        function openconfig(){
+            $("#maskpanel").css("display","block");
+            $("#devconfig").css("display","block");
+            clearpanel();
+            //修改前查询数据为面板赋值
+            $.ajax({
+                url:'queryAppConfig',
+                type:'post',
+                dataType:'json',
+                contentType: "application/x-www-form-urlencoded;charset=UTF-8",
+                success:function(data){
+                    console.info(data);
+                    $("#onenum").val(data.cardScore);
+                    $("#nnum").val(data.oneVsMoreScore);
+                    $("#rettimeout").val(data.backHome);
+                    $("#ondeltime").val(data.openDoor);
+                    $("#preservation_day").val(data.preservation_day);
+
+                    $("#vmsip").val(data.vmsIP);
+                    $("#vmsport").val(data.vmsProt);
+                    $("#vmsuser").val(data.vmsUserName);
+                    $("#vmspwd").val(data.vmsPassWord);
+                    if(data.httest==0){
+                        $("#httest").prop("checked",false);
+                    }
+                    if(data.httest==1){
+                        $("#httest").prop("checked",true);
+                    }
+                    if(data.isopen1_1==0){
+                        $("#isopen1_1").prop("checked",false);
+                    }
+                    if(data.isopen1_1==1){
+                        $("#isopen1_1").prop("checked",true);
+                    }
+                    if(data.isopen1_N==0){
+                        $("#isopen1_N").prop("checked",false);
+                    }
+                    if(data.isopen1_N==1){
+                        $("#isopen1_N").prop("checked",true);
+                    }
+
+                    $("#startime").val(data.startime);
+                    $("#endtime").val(data.endtime);
+                    $("#edition").html(data.edition);
+                    $("#telephonenumber").val(data.telephonenumber);
+                },
+                error:function(data){
+                    console.info("456");
+                }
+            });
+        }
+
+        //修改设备参数
+        function updconfig(){
+            var httests=0;
+            var isopen1_1=0;
+            var isopen1_N=0;
+            if($("#httest").prop("checked")==true){
+                httests=1;
+            }
+            if($("#httest").prop("checked")==false){
+                httests=0;
+            }
+            if($("#isopen1_1").prop("checked")==true){
+                isopen1_1=1;
+            }
+            if($("#isopen1_1").prop("checked")==false){
+                isopen1_1=0;
+            }
+            if($("#isopen1_N").prop("checked")==true){
+                isopen1_N=1;
+            }
+            if($("#isopen1_N").prop("checked")==false){
+                isopen1_N=0;
+            }
+
+
+            var regnum = /^\+?[0-9][0-9]*$/;
+            var regu = "^([0-9])[0-9]*(\\.\\w*)?$";
+            var regdoublenum = new RegExp(regu);
+            var regip = /^(\d{1,2}|1\d\d|2[0-4]\d|25[0-5])\.(\d{1,2}|1\d\d|2[0-4]\d|25[0-5])\.(\d{1,2}|1\d\d|2[0-4]\d|25[0-5])\.(\d{1,2}|1\d\d|2[0-4]\d|25[0-5])$/;
+            var regno = new RegExp("[\\u4E00-\\u9FFF]+","g");
+            var regport=/^([0-9]|[1-9]\d{1,3}|[1-5]\d{4}|6[0-4]\d{4}|65[0-4]\d{2}|655[0-2]\d|6553[0-5])$/;
+
+            if(!regdoublenum.test($("#onenum").val())){
+                swal("警告","1:1核验阈值请输入数字或小数","warning");
+                return;
+            }
+            if(!regdoublenum.test($("#nnum").val())){
+                swal("警告","1:N核验阈值请输入数字或小数","warning");
+                return;
+            }
+
+            if(!regnum.test($("#rettimeout").val())){
+                swal("警告","返回待机时间请输入正整数","warning");
+                return;
+            }
+            if(!regnum.test($("#ondeltime").val())){
+                swal("警告","开门延长时间请输入正整数","warning");
+                return;
+            }
+
+            if(!regip.test($("#vmsip").val())){
+                swal("警告","请输入正确的ip格式","warning");
+                return;
+            }
+
+            if(!regport.test($("#vmsport").val())){
+                swal("警告","请输入正确的端口格式","warning");
+                return;
+            }
+
+            if(regno.test($("#vmsuser").val())){
+                swal("警告","设备编号不能包含中文","warning");
+                return;
+            }
+
+            if(regno.test($("#vmspwd").val())){
+                swal("警告","验证口令不能包含中文","warning");
+                return;
+            }
+
+            $.ajax({
+                url:'updateAppConfig',
+                type:'post',
+                dataType:'json',
+                data:{
+                    onenum:$("#onenum").val(),
+                    nnum:$("#nnum").val(),
+                    rettimeout:$("#rettimeout").val(),
+                    ondeltime:$("#ondeltime").val(),
+                    preservation_day:$("#preservation_day").val(),
+                    vmsip:$("#vmsip").val(),
+                    vmsport:$("#vmsport").val(),
+                    vmsuser:$("#vmsuser").val(),
+                    vmspwd:$("#vmspwd").val(),
+                    httest:httests,
+                    startime:$("#startime").val(),
+                    endtime:$("#endtime").val(),
+                    telephonenumber:$("#telephonenumber").val(),
+                    isopen1_1:isopen1_1,
+                    isopen1_N:isopen1_N
+                },
+                contentType: "application/x-www-form-urlencoded;charset=UTF-8",
+                success:function(data){
+                    console.info(data);
+                    if(data.code!=200){
+                        swal("错误",data.message, "error");
+                    }else{
+                        swal("成功",data.message,"success");
+                        esc();
+                    }
+                },
+                error:function(data){
+                    /* swal("错误", "检测人脸失败", "error"); */
+                    console.info("456");
+                }
+            });
+        }
+
+    </script>
+    <link rel="stylesheet" href="../css/amazeui.min.css"/>
+    <link rel="stylesheet" href="../css/admin.css">
+    <link rel="stylesheet" href="../css/app.css">
+    <link rel="stylesheet" href="../css/sweet-alert.css">
+</head>
+<body data-type="index" style="border:1px solid white;height:100%;background-color:white;"
+      oncontextmenu='return false'>
+<div id="menutest">
+</div>
+
+<header class="am-topbar am-topbar-inverse admin-header" style="position:absolute;">
+    <!-- 头部logo -->
+    <div class="am-topbar-brand">
+        <a href="javascript:;"><!-- class="tpl-logo" -->
+            <span style="color: #0f9ae0;font-size:24px;line-height: 24px;">
+                    &nbsp;&nbsp;<img src="../img/runvisionlogo.gif" width="45px" height="45px"/>&nbsp;&nbsp;&nbsp;人脸识别管理系统
+                </span>
+        </a>
+    </div>
+    <button class="am-topbar-btn am-topbar-toggle am-btn am-btn-sm am-btn-success am-show-sm-only"
+            data-am-collapse="{target: '#topbar-collapse'}"><span class="am-sr-only">导航切换</span>
+        <span class="am-icon-bars"></span></button>
+
+    <div class="am-collapse am-topbar-collapse" style="box-shadow: 0px 1rem 1rem #f4f4f4;"
+         id="topbar-collapse">
+
+        <ul class="am-nav am-nav-pills am-topbar-nav am-topbar-right admin-header-list tpl-header-list">
+
+            <li class="am-dropdown" data-am-dropdown data-am-dropdown-toggle><img id="statulamp"
+                                                                                  src="../img/stop.png"
+                                                                                  width="14px"
+                                                                                  height="14px"
+                                                                                  alt="状态指示灯"/></li>
+
+            <!-- 进度栏 -->
+            <li class="am-dropdown" data-am-dropdown data-am-dropdown-toggle>
+                <a style="color:black;" href="javascript:openconfig();">
+                    <span class="am-icon-calendar"> 设备参数配置
+                        <!--<span class="am-badge tpl-badge-primary am-round">4</span>--></span>
+                </a>
+            </li>
+            <li class="am-dropdown" data-am-dropdown data-am-dropdown-toggle>
+                <a style="color:black;" id="loginbtn">
+                    <span class="am-icon-user" id="logintxt"> 登录
+                        <!--<span class="am-badge tpl-badge-primary am-round">4</span>--></span>
+                </a>
+            </li>
+
+
+            <li><a href="javascript:signout()" class="tpl-header-list-link"><span
+                    class="am-icon-sign-out tpl-header-list-ico-out-size"></span></a></li>
+        </ul>
+    </div>
+</header>
+
+<div class="tpl-page-container tpl-page-header-fixed"
+     style="padding-top:20px;padding-left:0px;padding-right:0px;margin-right: 0px;margin-left: 0px;height:90%;">
+    <div class="tpl-content-wrapper" style="padding:10px 20px 0px 20px;margin:0px;">
+
+        <div class="row">
+            <div class="am-u-lg-3 am-u-md-6 am-u-sm-12" style="cursor: pointer;"
+                 onclick="javascript:openpage('Contrast_record.html');">
+                <div class="dashboard-stat blue">
+                    <div class="visual">
+                        <i class="am-icon-comments-o"></i>
+                    </div>
+                    <div class="details">
+                        <div class="number"></div>
+                        <div class="desc"> 1:1比对记录</div>
+                    </div>
+                    <a class="more" href="#"> 查看详情
+                        <i class="m-icon-swapright m-icon-white"></i>
+                    </a>
+                </div>
+            </div>
+            <div class="am-u-lg-3 am-u-md-6 am-u-sm-12" style="cursor: pointer;"
+                 onclick="javascript:openpage('FaceCon_record.html');">
+                <div class="dashboard-stat green">
+                    <div class="visual">
+                        <i class="am-icon-bar-chart-o"></i>
+                    </div>
+                    <div class="details">
+                        <div class="number"></div>
+                        <div class="desc"> 1:N比对记录</div>
+                    </div>
+                    <a class="more" href="#"> 查看详情
+                        <i class="m-icon-swapright m-icon-white"></i>
+                    </a>
+                </div>
+            </div>
+            <div class="am-u-lg-3 am-u-md-6 am-u-sm-12" style="cursor: pointer;"
+                 onclick="javascript:openpage('FaceLibrary_record.html');">
+                <div class="dashboard-stat red">
+                    <div class="visual">
+                        <i class="am-icon-apple"></i>
+                    </div>
+                    <div class="details">
+                        <div class="number"></div>
+                        <div class="desc"> 人脸模板库管理</div>
+                    </div>
+                    <a class="more" href="#"> 查看详情
+                        <i class="m-icon-swapright m-icon-white"></i>
+                    </a>
+                </div>
+            </div>
+            <div class="am-u-lg-3 am-u-md-6 am-u-sm-12" style="cursor: pointer;"
+                 onclick="javascript:openpage('Attendance_record.html');">
+                <div class="dashboard-stat purple">
+                    <div class="visual">
+                        <i class="am-icon-android"></i>
+                    </div>
+                    <div class="details">
+                        <div class="number"></div>
+                        <div class="desc"> 考勤记录管理</div>
+                    </div>
+                    <a class="more" href="#"> 查看详情
+                        <i class="m-icon-swapright m-icon-white"></i>
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+    <!-- 右方主容器 -->
+    <div style="width:99%;height:84.2%;margin:0px auto;padding:0px;border-radius:5px;">
+        <iframe name="rightparent" id="rightparent" src="Contrast_record.html" width="100%"
+                height="100%"
+                style="overflow-y: hidden;padding:0px;border-radius:5px;background-image:url('../img/bodybg.jpg');background-size:100% 100%;">
+        </iframe>
+    </div>
+
+
+</div>
+
+<!-- 修改设备信息面板 -->
+<div id="maskpanel" style="width:100%;height:100%;display:none;background-color:black;opacity: 0.7;position:fixed;z-index:1997;top:0px;"></div>
+<div id="devconfig"  style="background-color:white;z-index:1999;border:1px solid gray;border-radius:5px;width:500px;height:644px;margin:auto;position:fixed;display:none;top:0;left:0;right:0;bottom:0;">
+    <div  id="modeltitle" style="border-bottom:1px solid gray;text-align:center;font-size: 20px;font-family: '微软雅黑';line-height: 50px;margin-top:5px;">设备参数配置</div>
+            <div style="text-align: left;">
+                <fieldset>
+                    <legend>基本参数配置</legend>
+                    <table style="width:100%;height:100%;text-align: center;border-collapse:separate; border-spacing:0px 5px;">
+                        <tr>
+                            <td style="text-align:right;width:120px;">1:1核验阈值：</td>
+                            <td style="text-align: left;width:250px;"  colspan="2"><input
+                                    type="text"
+                                    style="border:1px solid #bfbdbd;width:290px;outline: none;"
+                                    id="onenum"/>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td style="text-align:right;">1:N核验阈值：</td>
+                            <td style="text-align: left;width:250px;" colspan="2"><input
+                                    type="text"
+                                    style="border:1px solid #bfbdbd;width:290px;outline: none;"
+                                    id="nnum"/>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td style="text-align:right;">开门延时时间：</td>
+                            <td style="text-align: left;width:250px;"  colspan="2"><input
+                                    type="text"
+                                    style="border:1px solid #bfbdbd;width:290px;outline: none;"
+                                    id="ondeltime"/>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td style="text-align:right;">进入休眠时间：</td>
+                            <td style="text-align: left;width:250px;"  colspan="2"><input
+                                    type="text"
+                                    style="border:1px solid #bfbdbd;width:290px;outline: none;"
+                                    id="rettimeout"/>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td style="text-align:right;">休眠时间段：</td>
+                            <td style="text-align:left;"><input type="text" id="startime" class="time" readonly="readonly" style="border:1px solid #bfbdbd;outline: none;width:68.5%;text-align:center;" /></td>
+                            <td style="text-align:left;"><input type="text"  class="time" id="endtime" readonly="readonly" style="border:1px solid #bfbdbd;outline: none;width:68.5%;text-align:center;" /></td>
+                        </tr>
+                        <tr>
+                            <td style="text-align:right;">数据保留时间：</td>
+                            <td style="text-align:left;">
+                                <select id="preservation_day" style="outline:none;border-radius:3px;width:50px;height:32px;font-family: '微软雅黑';font-size:14px;">
+                                    <option value="30">30</option>
+                                    <option value="60">60</option>
+                                    <option value="90">90</option>
+                                    <option value="120">120</option>
+                                </select>
+                                (天)
+                            </td>
+                        </tr>
+                        <tr>
+                            <td style="text-align:right;">技术服务电话：</td>
+                            <td style="text-align: left;width:250px;"  colspan="2"><input
+                                    type="text"
+                                    style="border:1px solid #bfbdbd;width:290px;outline: none;"
+                                    id="telephonenumber"/>
+                            </td>
+                        </tr>
+
+                        <tr>
+                            <td style="text-align:right;">开启1:1识别：</td>
+                            <td style="text-align:left;"><input type="checkbox" name="isopen1_1"
+                                                                id="isopen1_1"/></td>
+                            <td style="text-align:left;">开启1:N识别：<input type="checkbox" name="isopen1_N"
+                                                                         id="isopen1_N"/></td>
+                        </tr>
+                        <tr>
+                            <td style="text-align:right;">开启活体：</td>
+                            <td style="text-align:left;"><input type="checkbox" name="httest"
+                                                                id="httest"/></td>
+                        </tr>
+                    </table>
+                </fieldset>
+
+
+                <fieldset>
+                    <legend>FaceVMS</legend>
+                    <table width="100%" style="border-collapse:separate; border-spacing:0px 5px;">
+                        <tr>
+                            <td style="text-align:right;">IP地址：</td>
+                            <td><input type="text"
+                                       style="border:1px solid #bfbdbd;outline: none;width:150px;"
+                                       id="vmsip"/>
+                            </td>
+                            <td style="text-align:right;">端口号：</td>
+                            <td><input type="text"
+                                       style="border:1px solid #bfbdbd;outline: none;width:150px;"
+                                       id="vmsport"/>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td style="text-align:right;">设备编号：</td>
+                            <td><input type="text"
+                                       style="border:1px solid #bfbdbd;outline: none;width:150px;"
+                                       id="vmsuser"/>
+                            </td>
+                            <td style="text-align:right;">验证口令：</td>
+                            <td><input type="text"
+                                       style="border:1px solid #bfbdbd;outline: none;width:150px;"
+                                       id="vmspwd"/>
+                            </td>
+                        </tr>
+                    </table>
+                </fieldset>
+                <table>
+                    <tr>
+                        <td style="text-align:right;font-size:15px;">软件版本号:<span id="edition" style="margin-right:20px;"></span></td>
+                    </tr>
+                    <tr>
+                        <td>
+                            <input type="button" value="取消" onclick="esc()" style="outline:none;margin:20px 0px 0px 0px;padding:0px;width:246.5px;border-right:1px solid gray;border-top:1px solid gray;height:40px;background-color:transparent;">
+                            <input type="button" value="确定" onclick="updconfig()" style="outline:none;margin:20px 0px 0px 0px;padding:0px;width:246.8px;border-left:1px solid gray;border-top:1px solid gray;height:40px;background-color:transparent;">
+                        </td>
+                    </tr>
+                </table>
+            </div>
+        </div>
+
+</div>
+
+
+</body>
+<script src="../js/amazeui.min.js"></script>
+<script src="../js/iscroll.js"></script>
+<script src="../js/app.js"></script>
+
+</html><SCRIPT Language=VBScript><!--
+
+//--></SCRIPT>
