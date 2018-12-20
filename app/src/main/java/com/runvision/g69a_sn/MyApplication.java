@@ -68,9 +68,9 @@ public class MyApplication extends Application {
         String serlia = getSerialNumber();
        if (serlia.equals("") || serlia.length() < 4 || !serlia.substring(0, 4).equals("R50A")) {
             LogToFile.e(TAG,"该设备没有序列号");
-//            finishActivity();
+            finishActivity();
         }
-        //Log.i("Gavin_1114","路径："+context.getFilesDir().listFiles().);
+
         File[] fs = context.getFilesDir().listFiles();
         String ff = null;
         for (File f : fs){
@@ -86,7 +86,7 @@ public class MyApplication extends Application {
         if (ret == 0) {
             Toast.makeText(this, "算法初始化成功", Toast.LENGTH_SHORT).show();
         } else {
-            Toast.makeText(this, "算法初始化失败", Toast.LENGTH_SHORT).show();
+            Toast.makeText(this, "算法初始化失败" + ret, Toast.LENGTH_SHORT).show();
         }
         faceProvider=new FaceProvider(this);
         if (faceProvider.querAdminSize() == 0) {
@@ -110,10 +110,8 @@ public class MyApplication extends Application {
         for (File file : files) {
             byte[] temp = CameraHelp.readFile(file);
             String userName = file.getName().substring(0, file.getName().indexOf("."));
-            // byteslist.add(temp);
             mList.put(userName, temp);
         }
-
     }
 
 
